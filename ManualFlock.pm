@@ -5,7 +5,7 @@ package File::ManualFlock;
 # Version Info                         #
 #===================================================================#
 
-$File::ManualFlock::VERSION = '1.0.0';
+$File::ManualFlock::VERSION = '1.03';
 
 #======================================#
 # Dependencies                         #
@@ -37,12 +37,14 @@ use File::ManualFlock::Constants;
 # Inheritance                          #
 #===================================================================#
 
+#@ISA = qw( MyExporter );
+
 #======================================#
 # Public Methods                       #
 #===================================================================#
 
 #print "mflock: lock_sh: " . LOCK_SH;
-local %File::ManualFlock::mflocks = {};
+local %File::ManualFlock::mflocks = ();
 
 #--------------------------------------#
 # Constructor
@@ -54,6 +56,17 @@ sub new
   bless $self, $pkg;
   #print "\n----new ob: $self\n\n";
   return $self;
+}
+
+#-------------------------------------------------------------------#
+
+sub import
+{
+  my $self = shift;
+  File::ManualFlock::Constants->export_to_level( 0, @_ ); 
+  print STDERR "mfl:" . caller(0) . "\n";
+  my $to_pkg = caller(0);
+  File::ManualFlock::Constants->export_to_pkg( $to_pkg, @_ );
 }
 
 #-------------------------------------------------------------------#
@@ -240,9 +253,7 @@ sub _get_sh_lock
       
       #sleep 3;
             
-      #sysopen( $fh, $filepath, O_RDONLY );
-      #binmode $fh;
-      #autoflush $fh 1;
+
       
       #sleep 2;
             
@@ -364,7 +375,7 @@ sub _get_next_sh_lock_num
   # sort lock_nums to find highest number existing lock
   
   @lock_nums = sort {$a <=> $b} @lock_nums;
-  my $newest_lock_num = pop @lock_nums;
+  my $newest_lock_num = pop @lock_nums || 0;
   
   # get new lock num
   
@@ -463,7 +474,6 @@ DESTROY
   my $self = shift;
   #print "\n\n----destroy block start\n";
   #print "ob: $self->{sf}\n";
-  
   foreach my $mfl ( keys %{$File::ManualFlock::mflocks{$self->{sf}}} )
   { 
     if ( -f $mfl )
